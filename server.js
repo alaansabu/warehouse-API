@@ -1,5 +1,6 @@
 const { configDotenv } = require('dotenv');
 const connect = require('./config/conifg')
+const routes = require('./routes/routes')
 configDotenv();
 
 const express = require('express');
@@ -7,9 +8,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 connect()
 
-app.get("/",(req,res)=>{
-    res.send("hello world")
-})
+app.use(express.json())
+app.use('/v1/api/',routes)
 
 app.listen(PORT,(req,res)=>{
 
