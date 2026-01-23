@@ -27,7 +27,7 @@ if(existingStock){
 }
 
 
-const newStock = await stockSchema.create({
+await stockSchema.create({
 
     product,price,brand,remainingStock
 
@@ -44,4 +44,43 @@ res.status(201).json({message:"product created successfully",})
     
 }
 }
-module.exports = addStock
+
+
+const upadateStock = async (req,res)=>{
+
+try {
+const { brand } = req.params; // Cleaner destructuring    
+if(!brand){
+
+return res.status(404).json({"message":"name does not exist"})
+
+}
+
+    await stockSchema.findOneAndUpdate(
+        {brand:brand},
+{
+         $set:{
+    
+        price:req.body.price,
+        remainingStock:req.body.remainingStock
+    }})
+
+    res.status(204).json({"message":"successfully updated resoources"})
+} catch (error) {
+    
+    res.status(500).json({"message":"unable to Update check again",error})
+    console.log(error);
+    
+}
+
+
+    
+
+
+}
+
+
+
+
+
+module.exports = {addStock,upadateStock}
