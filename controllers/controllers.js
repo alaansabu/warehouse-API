@@ -63,18 +63,18 @@ return res.status(404).json({"message":"name does not exist"})
     
         price:req.body.price,
         remainingStock:req.body.remainingStock
-    }})
+    }},
+    
+)
+res.status(200).json({"message":"successfully updated resoources"})
 
-    res.status(204).json({"message":"successfully updated resoources"})
 } catch (error) {
     
-    res.status(500).json({"message":"unable to Update check again",error})
+    res.status(500).json({"message":"unable to Update check again"})
     console.log(error);
     
 }
 
-
-    
 
 
 }
