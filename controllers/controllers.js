@@ -124,7 +124,7 @@ const delstock = async (req,res)=>{
             }
 
             // silent del: delete the whole document with req.body
-            const putdata = await stockSchema.findOneAndDelete(_id)
+            await stockSchema.findOneAndDelete(_id)
             res.status(200).json({"message":"successfully deleted"})
     } catch (error) {
         
