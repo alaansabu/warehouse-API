@@ -137,4 +137,53 @@ const delstock = async (req,res)=>{
 }
 
 
-module.exports = {addStock,upadateStock,putStock,delstock}
+
+const staticGet =  async (req,res)=>{
+
+try {
+        
+
+        const findStock = await stockSchema.find()
+      
+
+        res.format({
+
+       'application/json': () => {
+                res.status(200).json(findStock);
+            },
+
+
+
+
+        'text/csv':()=>{
+
+            csvHeader = `_id,brand,price,remainign stocks,\n`
+            csvRows = findStock.map(i=>{
+
+                return `${i._id},${i.brand},${i.price},${i.remainingStock}`
+
+            }).join('\n')
+
+           
+            res.status(200).send(csvHeader+csvRows)
+            
+
+        }
+
+
+        }
+
+        )
+        
+
+} catch (error) {
+    console.log(error);
+    
+}
+
+
+
+}
+
+
+module.exports = {addStock,upadateStock,putStock,delstock,staticGet}
