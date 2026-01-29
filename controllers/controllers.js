@@ -1,12 +1,14 @@
 const stockSchema = require('../schema/stockSchema')
-
+const {client} = require("../config/redis")
 
 const addStock = async (req,res)=>{
 
 try {
 
 
+
 const {product,price,brand,remainingStock} = req.body
+
 
 const productInfo = product[0]
 
@@ -27,13 +29,27 @@ if(existingStock){
 }
 
 
+
+
+
+
 await stockSchema.create({
 
     product,price,brand,remainingStock
 
 })
 
-res.status(201).json({message:"product created successfully",})
+
+const items = {product,price,brand,remainingStock} 
+const catchKey = `stock:${brand}:${productInfo.productType}:${productInfo.flavor}`;
+
+await client.set(catchKey, JSON.stringify(items), {
+            EX: 3600 // Cache for 1 hour
+        });
+console.log("catchkey is ",catchKey);
+
+
+res.status(201).json({message:"product created successfully and successfully catched",data:items})
 
 
     
