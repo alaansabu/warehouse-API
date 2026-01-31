@@ -1,12 +1,15 @@
 const stockSchema = require('../schema/stockSchema')
-
+const {client} = require("../config/redis")
+const mongoose = require('mongoose')
 
 const addStock = async (req,res)=>{
 
 try {
 
 
+
 const {product,price,brand,remainingStock} = req.body
+
 
 const productInfo = product[0]
 
@@ -27,13 +30,27 @@ if(existingStock){
 }
 
 
+
+
+
+
 await stockSchema.create({
 
     product,price,brand,remainingStock
 
 })
 
-res.status(201).json({message:"product created successfully",})
+
+const items = {product,price,brand,remainingStock} 
+const catchKey = `stock:${brand}`
+
+await client.set(catchKey, JSON.stringify(items), {
+            EX: 3600 // Cache for 1 hour
+        });
+console.log("catchKey is ",catchKey);
+
+
+res.status(201).json({message:"product created successfully and successfully catched",data:items})
 
 
     
@@ -56,6 +73,7 @@ return res.status(404).json({"message":"name does not exist"})
 
 }
 
+
     await stockSchema.findOneAndUpdate(
         {brand:brand},
 {
@@ -66,6 +84,11 @@ return res.status(404).json({"message":"name does not exist"})
     }},
     
 )
+const catchKey = `stock:${brand}`
+await client.del(catchKey)
+console.log(catchKey,"is deleted after updating resource");
+
+
 res.status(200).json({"message":"successfully updated resoources"})
 
 } catch (error) {
@@ -116,16 +139,31 @@ const delstock = async (req,res)=>{
 
     try {
 
-
-    const { _id } = req.params;
+        
+    const { _id, brand } = req.params;
 
             if (!_id) {
-                return res.status(400).json({ "message": "Product ID is required" });
+                return res.status(400).json({ message: "Product ID is required" });
             }
 
-            // silent del: delete the whole document with req.body
-            await stockSchema.findOneAndDelete(_id)
-            res.status(200).json({"message":"successfully deleted"})
+            const id = String(_id).trim();
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                return res.status(400).json({ message: "Invalid Product ID" });
+            }
+
+            // delete the document by id
+           const delProduct = await stockSchema.findByIdAndDelete(id);
+
+            if (!delProduct) {
+                return res.status(404).json({ message: "Product not found" });
+            }
+
+            const delbrand = brand || delProduct.brand;
+            const catchKey = `stock:${delbrand}`;
+            const delCount = await client.del(catchKey);
+            console.log(`Redis DEL for ${catchKey}:`, delCount);
+
+            return res.status(200).json({ message: "successfully deleted" });
     } catch (error) {
         
         console.log(error);
@@ -137,4 +175,95 @@ const delstock = async (req,res)=>{
 }
 
 
-module.exports = {addStock,upadateStock,putStock,delstock}
+
+const staticGet =  async (req,res)=>{
+
+try {
+        
+
+        const findStock = await stockSchema.find()
+      
+
+        res.format({
+
+       'application/json': () => {
+                res.status(200).json(findStock);
+            },
+
+
+
+
+        'text/csv':()=>{
+
+            csvHeader = `_id,brand,price,remainign stocks,\n`
+            csvRows = findStock.map(i=>{
+
+                return `${i._id},${i.brand},${i.pricnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnne},${i.remainingStock}`
+
+            }).join('\n')
+
+           
+            res.status(200).send(csvHeader+csvRows)
+            
+
+        }
+
+
+        }
+
+        )
+        
+
+} catch (error) {
+    console.log(error);
+    
+}
+
+
+
+}
+
+const dynaGet = async (req,res)=>{
+
+
+try {
+    const { brand } = req.params;
+    if (!brand) {
+        return res.status(400).json({ message: "Brand parameter is required" });
+    }
+    const catchKey = `stock:${brand}`;
+    // Try to get from Redis
+    const catchData = await client.get(catchKey);
+    if (catchData) {
+
+        return res.status(200).json({
+            message: "data is fetched from redis",
+            data: JSON.parse(catchData)
+        });
+    }
+    // If not in cache, fetch from DB
+    const findStock = await stockSchema.findOne({ brand });
+    if (!findStock) {
+        return res.status(404).json({ message: "product not found" });
+    }
+    // Cache the same structure as addStock
+    const items = {
+        product: findStock.product,
+        price: findStock.price,
+        brand: findStock.brand,
+        remainingStock: findStock.remainingStock
+    };
+    await client.set(catchKey, JSON.stringify(items), { EX: 3600 });
+    return res.status(200).json({
+        message: "the data is found from db",
+        data: items
+    });
+} catch (error) {
+    console.error("DynaGet Error:", error);
+    res.status(500).json({ message: "server error", error: error.message });
+}
+}
+
+
+
+module.exports = {addStock,upadateStock,putStock,delstock,staticGet,dynaGet}
