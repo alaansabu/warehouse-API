@@ -1,5 +1,6 @@
 const stockSchema = require('../schema/stockSchema')
 const {client} = require("../config/redis")
+const mongoose = require('mongoose')
 
 const addStock = async (req,res)=>{
 
@@ -139,20 +140,30 @@ const delstock = async (req,res)=>{
     try {
 
         
-    const { _id,brand } = req.params;
+    const { _id, brand } = req.params;
 
             if (!_id) {
-                return res.status(400).json({ "message": "Product ID is required" });
+                return res.status(400).json({ message: "Product ID is required" });
             }
 
-            // silent del: delete the whole document with req.body
-           const delProduct =  await stockSchema.findOneAndDelete(_id)
-            const delbrand = brand||delProduct.brand
-            const clientKey = `stock:${delbrand}`
-            await client.del(clientKey)
-            console.log("client key and product is deletd");
-            
-            res.status(200).json({"message":"successfully deleted"})
+            const id = String(_id).trim();
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                return res.status(400).json({ message: "Invalid Product ID" });
+            }
+
+            // delete the document by id
+           const delProduct = await stockSchema.findByIdAndDelete(id);
+
+            if (!delProduct) {
+                return res.status(404).json({ message: "Product not found" });
+            }
+
+            const delbrand = brand || delProduct.brand;
+            const catchKey = `stock:${delbrand}`;
+            const delCount = await client.del(catchKey);
+            console.log(`Redis DEL for ${catchKey}:`, delCount);
+
+            return res.status(200).json({ message: "successfully deleted" });
     } catch (error) {
         
         console.log(error);
