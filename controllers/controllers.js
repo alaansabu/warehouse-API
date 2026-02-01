@@ -198,7 +198,7 @@ try {
             csvHeader = `_id,brand,price,remainign stocks,\n`
             csvRows = findStock.map(i=>{
 
-                return `${i._id},${i.brand},${i.pricnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnne},${i.remainingStock}`
+                return `${i._id},${i.brand},${i.price},${i.remainingStock}`
 
             }).join('\n')
 
