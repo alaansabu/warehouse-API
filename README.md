@@ -32,12 +32,6 @@ A high-performance, protocol-compliant inventory management system built with No
 4. Start the server:
    `npm start`
 
-## API Features & Testing
-
-### 1. Content Negotiation (JSON/CSV)
-The API detects the `Accept` header to format the response.
-* For JSON: Set `Accept: application/json`
-* For CSV: Set `Accept: text/csv`
 
 
 
